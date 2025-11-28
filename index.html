@@ -2,31 +2,35 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <title>Tra cứu lương OneFit - Xem ngay bảng lương</title>
+  <title>Tra cứu lương OneFit</title>
   <style>
-    body {font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 20px; background: #f5f7fa;}
-    h1 {text-align: center; color: #0d47a1;}
-    .input-box {background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px;}
-    input {width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 17px;}
-    button {background: #0d47a1; color: white; padding: 14px 30px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;}
+    body {font-family: Arial, sans-serif; max-width: 920px; margin: 40px auto; padding: 20px; background: #f5f7fa;}
+    h1 {text-align: center; color: #0d47a1; margin-bottom: 10px;}
+    .input-box {background: white; padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.12); text-align: center;}
+    input {width: 100%; max-width: 420px; padding: 16px; margin: 15px auto; border: 1px solid #ddd; border-radius: 10px; font-size: 18px; display: block;}
+    button {background: #0d47a1; color: white; padding: 16px 40px; border: none; border-radius: 10px; font-size: 19px; cursor: pointer; margin-top: 10px;}
     button:hover {background: #1565c0;}
-    table {width: 100%; border-collapse: collapse; margin-top: 20px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;}
-    th {background: #0d47a1; color: white; padding: 15px; text-align: center;}
-    td {padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left;}
-    tr:nth-child(even) {background: #f8fbff;}
-    .amount {text-align: right; font-weight: bold; color: #d32f2f;}
-    .loading {text-align: center; padding: 30px; color: #666; font-size: 18px;}
-    .error {color: red; text-align: center; padding: 20px;}
-    .info {background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; font-weight: bold;}
+    table {width: 100%; border-collapse: collapse; margin-top: 30px; background: white; box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden;}
+    th {background: #0d47a1; color: white; padding: 16px;}
+    td {padding: 14px; border-bottom: 1px solid #eee;}
+    tr:nth-child(even) {background: #f9fcff;}
+    .amount {text-align: right; font-weight: bold; color: #c62828;}
+    .info {background: #e8f5e8; padding: 18px; border-radius: 12px; margin: 25px 0; text-align: center; font-size: 19px; font-weight: bold; color: #2e7d32;}
+    .loading, .error, .no-data {text-align: center; padding: 35px; font-size: 19px; border-radius: 12px; margin: 25px 0;}
+    .loading {background: #e3f2fd; color: #1565c0;}
+    .error {background: #ffebee; color: #c62828;}
+    .no-data {background: #fff8e1; color: #ef6c00;}
+    .note {font-size: 15px; color: #666; margin-top: 20px;}
   </style>
 </head>
 <body>
 
   <h1>Tra cứu lương OneFit</h1>
   <div class="input-box">
-    <input type="text" id="maThe" placeholder="Nhập mã thẻ (ví dụ: V3111318 hoặc 3111318)" autofocus>
-    <input type="text" id="thang" value="202510" placeholder="Tháng (ví dụ: 202510)">
-    <button onclick="traCuu()">Xem bảng lương ngay</button>
+    <input type="text" id="maThe" placeholder="Nhập mã thẻ (VD: V3111322 hoặc 3111322)" autofocus>
+    <input type="text" id="thang" placeholder="Để trống = lương tháng hiện tại | Nhập YYYYMM = xem tháng cũ (VD: 202509)">
+    <button onclick="traCuu()">XEM LƯƠNG NGAY</button>
+    <div class="note">Nhấn Enter cũng được • Dữ liệu lấy trực tiếp từ OneFit</div>
   </div>
 
   <div id="ketqua"></div>
@@ -34,77 +38,96 @@
 <script>
 async function traCuu() {
   let ma = document.getElementById("maThe").value.trim().toUpperCase();
-  const thang = document.getElementById("thang").value.trim();
+  let thangInput = document.getElementById("thang").value.trim();
   const resultDiv = document.getElementById("ketqua");
 
-  // Tự thêm "V" nếu thiếu
-  if (ma && !ma.startsWith("V") && ma.length === 7) ma = "V" + ma;
-
-  if (!ma || !thang || thang.length !== 6) {
-    resultDiv.innerHTML = '<div class="error">Vui lòng nhập đầy đủ mã thẻ và tháng (YYYYMM)</div>';
+  if (!ma) {
+    resultDiv.innerHTML = '<div class="error">Vui lòng nhập mã thẻ!</div>';
     return;
   }
 
-  resultDiv.innerHTML = '<div class="loading">Đang tải bảng lương của <strong>' + ma + '</strong> tháng <strong>' + thang + '</strong>...</div>';
+  // Tự thêm V nếu thiếu
+  if (ma && !ma.startsWith("V") && ma.length === 7) {
+    ma = "V" + ma;
+    document.getElementById("maThe").value = ma;
+  }
 
-  const url = `https://esalary.one-fit.com/VN/Program/QueryReport/AjaxRequest.aspx?key=getsalarybyid&uid=${ma}&_=${Date.now()}`;
+  const isCurrentMonth = (thangInput === "");
+  const thangHienThi = isCurrentMonth ? "Tháng hiện tại" : thangInput.slice(4) + "/" + thangInput.slice(0,4);
+
+  resultDiv.innerHTML = `<div class="loading">Đang tải lương của <strong>${ma}</strong> – ${thangHienThi}...</div>`;
+
+  let url = "";
+  if (isCurrentMonth) {
+    url = `https://esalary.one-fit.com/VN/Program/QueryReport/AjaxRequest.aspx?key=getsalarybyid&uid=${ma}&_=${Date.now()}`;
+  } else {
+    if (!/^\d{6}$/.test(thangInput)) {
+      resultDiv.innerHTML = '<div class="error">Tháng phải đúng định dạng YYYYMM (ví dụ: 202509)</div>';
+      return;
+    }
+    url = `https://esalary.one-fit.com/VN/Program/QueryReport/AjaxRequest.aspx?key=gethistorysalary&uid=${ma}&dateid=${thangInput}&_=${Date.now()}`;
+  }
 
   try {
-    const response = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(url));
-    const data = await response.json();
-    const jsonText = data.contents;
+    const proxy = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    const data = await res.json();
+    const jsonText = data.contents || "";
 
-    // Kiểm tra dữ liệu có rỗng không
     if (!jsonText || jsonText.trim() === "" || jsonText.includes("error")) {
-      resultDiv.innerHTML = '<div class="error">Không tìm thấy dữ liệu lương. Vui lòng kiểm tra lại mã thẻ hoặc tháng!</div>';
+      resultDiv.innerHTML = `<div class="no-data">Không có dữ liệu lương cho <strong>${ma}</strong> ${thangHienThi}</div>`;
       return;
     }
 
     const json = JSON.parse(jsonText);
-
-    if (!json || json.length === 0) {
-      resultDiv.innerHTML = '<div class="error">Không có dữ liệu lương cho nhân viên này.</div>';
+    if (!Array.isArray(json) || json.length === 0) {
+      resultDiv.innerHTML = `<div class="no-data">Chưa có dữ liệu lương cho tháng này</div>`;
       return;
     }
 
-    // Lấy thông tin nhân viên
     const nv = json[0];
-    const hoTen = nv.userName || "Không rõ";
-    const phongBan = nv.departName || "Không rõ";
+    const ten = nv.userName || "Không rõ";
+    const pb = nv.departName || "Không rõ";
 
-    let tableHTML = `
-      <div class="info">Nhân viên: <strong>${hoTen}</strong> | Mã thẻ: <strong>${ma}</strong> | Phòng ban: <strong>${phongBan}</strong> | Tháng: <strong>${thang.slice(0,4)}/${thang.slice(4)}</strong></div>
+    let table = `
+      <div class="info">
+        ${ten} • ${ma} • ${pb} • ${thangHienThi}
+      </div>
       <table>
-        <tr><th>STT</th><th>Mã khoản</th><th>Nội dung</th><th style="text-align:right;">Số tiền (VNĐ)</th></tr>
+        <tr><th>STT</th><th>Mã</th><th>Khoản mục</th><th style="text-align:right;">Số tiền</th></tr>
     `;
 
-    json.forEach((item, index) => {
-      const tien = parseFloat(item.amount || 0).toLocaleString("vi-VN");
-      tableHTML += `
+    let tong = 0;
+    json.forEach((item, i) => {
+      const tien = parseFloat(item.amount || 0);
+      tong += tien;
+      table += `
         <tr>
-          <td style="text-align:center;">${index + 1}</td>
+          <td style="text-align:center;">${i+1}</td>
           <td>${item.itemCode || ""}</td>
           <td>${item.salaryDesc || ""}</td>
-          <td class="amount">${tien}</td>
+          <td class="amount">${tien.toLocaleString("vi-VN")} ₫</td>
         </tr>
       `;
     });
 
-    tableHTML += `</table>`;
-    resultDiv.innerHTML = tableHTML;
+    table += `
+      </table>
+      <div class="info" style="background:#e8f5e8; color:#2e7d32; font-size:22px;">
+        TỔNG THU NHẬP: <strong>${tong.toLocaleString("vi-VN")} ₫</strong>
+      </div>
+    `;
+
+    resultDiv.innerHTML = table;
 
   } catch (err) {
-    resultDiv.innerHTML = '<div class="error">Lỗi kết nối hoặc hệ thống OneFit đang bảo trì. Vui lòng thử lại sau!</div>';
+    resultDiv.innerHTML = `<div class="error">Lỗi kết nối. Thử lại sau vài phút nhé!</div>`;
   }
 }
 
-// Cho phép nhấn Enter để tra cứu
-document.getElementById("maThe").addEventListener("keypress", function(e) {
-  if (e.key === "Enter") traCuu();
-});
-document.getElementById("thang").addEventListener("keypress", function(e) {
-  if (e.key === "Enter") traCuu();
-});
+// Nhấn Enter ở bất kỳ ô nào cũng tra được
+document.getElementById("maThe").addEventListener("keypress", e => { if (e.key === "Enter") traCuu(); });
+document.getElementById("thang").addEventListener("keypress", e => { if (e.key === "Enter") traCuu(); });
 </script>
 </body>
 </html>
