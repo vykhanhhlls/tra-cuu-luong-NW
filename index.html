@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tra cứu link</title>
+  <meta charset="utf-8">
+  <style>
+    table { font-family: Arial; border-collapse: collapse; width: 500px; }
+    td, th { border: 1px solid #ddd; padding: 8px; }
+    input { width: 100%; padding: 8px; border: none; }
+  </style>
+</head>
+<body>
+  <h2>Tra cứu link</h2>
+  <table>
+    <tr><th>Mã thẻ</th><td><input type="text" id="maThe" oninput="taoLink()"></td></tr>
+    <tr><th>Tháng (YYYYMM)</th><td><input type="text" id="thang" value="202509" oninput="taoLink()"></td></tr>
+    <tr><th>Họ tên</th><td><input type="text" id="hoTen" oninput="taoLink()"></td></tr>
+    <tr><th>Link báo cáo</th><td id="ketQua" style="word-break:break-all; color:blue"></td></tr>
+  </table>
+
+<script>
+function taoLink() {
+  const ma = document.getElementById("maThe").value.trim();
+  const thang = document.getElementById("thang").value.trim();
+  const hoTen = document.getElementById("hoTen").value.trim();
+
+  if (ma && thang) {
+    const baseURL = "https://esalary.one-fit.com.vn/Program/QuerryReport/AjaxRequest.aspx?key=";
+    const link = baseURL + ma + thang;
+    document.getElementById("ketQua").innerHTML = 
+      `<a href="${link}" target="_blank">${link}</a>`;
+  } else {
+    document.getElementById("ketQua").innerText = "";
+  }
+}
+</script>
+</body>
+</html>
